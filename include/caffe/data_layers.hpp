@@ -322,6 +322,52 @@ class WindowDataLayer : public BasePrefetchingDataLayer<Dtype> {
   vector<std::pair<std::string, Datum > > image_database_cache_;
 };
 
+/**
+ * @brief Provides generic data to the Net from memory.
+ */
+template <typename Dtype>
+class GenericMemoryDataLayer : public Layer<Dtype> {
+ public:
+  explicit GenericMemoryDataLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+	  
+  // Data layers have no bottoms, so reshaping is trivial.
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top) {}  
+
+  virtual inline const char* type() const { return "GenericMemoryData"; }
+  virtual inline int ExactNumBottomBlobs() const { return 0; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+  //virtual inline int MinTopBlobs() const { return 1; }
+
+  // Reset data for multiple top 
+  void Reset(Dtype* data, int n);
+
+  int batch_size() { return batch_size_; }
+  int channels() { return channels_; }
+  int height() { return height_; }
+  int width() { return width_; }
+  
+  // data dimensionality callback (needs to be working before calling Net::Init())
+  //typedef void (*DataShapeCallback)(const string &layer_name, vector<int> &shape);
+  //static DataShapeCallback data_shape_callback_;
+
+ protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {}
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {}
+
+  int batch_size_, channels_, height_, width_, size_;
+  Dtype* data_;
+  int n_;
+  size_t pos_;
+};
+
 }  // namespace caffe
 
 #endif  // CAFFE_DATA_LAYERS_HPP_
